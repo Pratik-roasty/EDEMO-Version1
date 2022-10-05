@@ -1,0 +1,34 @@
+.login-div{
+    position: relative;
+    top: 10rem;
+    left: 43%;
+}
+.loginBtn{
+    position: relative;
+    top: 3.2rem;
+    left: 1.5rem;
+    width: 12rem;
+}
+.regBtn{
+    width: 12rem;
+    position: relative;
+    top: 4rem;
+    left: 1.5rem;
+}
+.field{
+    width: 15rem;
+    height: 2.5rem;
+}
+.navbar-brand{
+    letter-spacing: 7px;
+    font-family: 'Roboto Slab', serif;
+    position: relative;
+    left: 80px;
+    border-radius: 5%;
+    text-align: center;
+    width: 10%;
+}
+.logo-text{
+    color: #3590c4;
+    font-size: 3rem;
+}

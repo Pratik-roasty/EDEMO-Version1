@@ -1,0 +1,15 @@
+<%- include("header") -%>
+
+<h2><%=id%></h2>
+<h2><%=title%></h2>
+<% for(var i=0;i<candidateArray.length;i++){ %>
+    <h4><%=candidateArray[i]%></h4>
+<%}%>
+<form action="/<%=user%>/<%=title%>/candidates" method="post">
+    <input type="text" name="candidate" placeholder="Candidate name">
+    <button type="submit">+</button>
+</form>
+<form action="/<%=user%>/<%=title%>/delete" method="get">
+    <button type="submit"> Cancel </button>
+</form>
+<%- include("footer") -%>
