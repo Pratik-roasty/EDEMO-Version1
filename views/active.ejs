@@ -6,6 +6,6 @@
 <br>
 
 <% for(var i=0;i<polls.length;i++){ %>
-    <a href="/"><%=polls[i].title%></a>
+    <a href="/<%=username%>/<%=polls[i]._id%>/viewPoll"><%=polls[i].title%></a>
 <%}%>
 <%- include("footer") -%>

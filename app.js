@@ -7,7 +7,8 @@ const mongoose=require("mongoose");
 const session=require("express-session");
 const passport=require("passport");
 const passportLocalMongoose=require("passport-local-mongoose");
-
+const User=require("./models/users");
+const Poll=require("./models/polls");
 //needed initialization
 const app=express();
 app.set('view engine', 'ejs');
@@ -26,30 +27,10 @@ app.use(session({
 //database connected
 mongoose.connect(process.env.URI);
 
-
-
-//database creation
-const userSchema=new mongoose.Schema({
-    username: String,
-    password: String,
-    name: String,
-    email: String,
-});
-userSchema.plugin(passportLocalMongoose);
-const pollSchema=new mongoose.Schema({
-    title: String,
-    candidates: Array,
-    publisher: String,
-    pollID: String,
-    votes: [Number]
-});
-const User=new mongoose.model("User",userSchema);
-
 passport.use(User.createStrategy());
 
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
-const Poll=new mongoose.model("Poll",pollSchema);
 
 //all the routes
 
@@ -171,14 +152,14 @@ app.get("/:userRoute/account",function(req,res){
     }
 });
 
-app.get("/:userRoute/:pollTitle/candidates",function(req,res){
+app.get("/:userRoute/:poll/candidates",function(req,res){
     if(req.isAuthenticated()){
         const username=req.params.userRoute;
-        Poll.findOne({publisher: username,title: req.params.pollTitle},function(err,poll){
+        Poll.findOne({publisher: username,_id: req.params.poll},function(err,curPoll){
             if(err){
                 console.log(err);
             } else{
-                res.render("candidates",{user:username, id: poll.pollID, title: poll.title, candidateArray: poll.candidates});
+                res.render("candidates",{user:username, pollid: curPoll._id, title: curPoll.title, nameList: curPoll.nameOfCandidates});
             }
         });
     }
@@ -187,9 +168,55 @@ app.get("/:userRoute/:pollTitle/candidates",function(req,res){
     }
 });
 
-app.get("/:userRoute/:title/delete",function(req,res){
+app.post("/:userRoute/:poll/candidates",function(req,res){
     if(req.isAuthenticated()){
-        Poll.deleteOne({publisher: req.params.userRoute, title: req.params.title},function(err){
+        User.findOne({username: req.body.candidate},function(err,user){
+            if(err || user==null){
+                res.redirect("/"+req.params.userRoute+"/"+req.params.poll+"/candidates");
+            }
+            else{
+                const tempId=user._id;
+                console.log("here: "+user.name);
+                var listOfCandidates=[];
+                var names=[];
+                var allVotes=[];
+                Poll.findOne({_id:req.params.poll},function(err,result){
+                    if(err){
+                        console.log(err)
+                        res.redirect("/"+req.params.userRoute+"/"+req.params.poll+"/candidates")
+                    }
+                    else{
+                        listOfCandidates=result.candidates;
+                        names=result.nameOfCandidates;
+                        allVotes=result.votes;
+                        allVotes.push(0);
+                        listOfCandidates.push(tempId);
+                        User.findOne({_id: tempId},function(err,foundUser){
+                            if(err){
+                                console.log(err);
+                            }
+                            else{
+                                names.push(foundUser.username);
+                                Poll.update({_id:req.params.poll},{candidates:listOfCandidates, nameOfCandidates: names,votes: allVotes},function(err){
+                                    if(err){
+                                        console.log(err);
+                                    }
+                                    else{
+                                        res.redirect("/"+req.params.userRoute+"/"+req.params.poll+"/candidates")
+                                    }
+                                });
+                            }
+                        })
+                    }
+                });
+            }
+        })
+    }
+})
+
+app.get("/:userRoute/:poll/delete",function(req,res){
+    if(req.isAuthenticated()){
+        Poll.deleteOne({publisher: req.params.userRoute, _id: req.params.poll},function(err){
             if(err){
                 console.log(err);
             }
@@ -203,17 +230,51 @@ app.get("/:userRoute/:title/delete",function(req,res){
     }
 })
 
+
+app.get("/:userRoute/:poll/viewPoll",function(req,res){
+    Poll.findOne({_id:req.params.poll},function(err,foundPoll){
+        if(err){
+            console.log(err);
+        }
+        else{
+            res.render("viewPoll",{candidates: foundPoll.nameOfCandidates,
+                pollTitle: foundPoll.pollTitle,
+                votes: foundPoll.votes,
+                username: req.params.userRoute
+            });
+        }
+    })
+})
+
 app.post("/:userRoute/create",function(req,res){
     if(req.isAuthenticated()){
         const username=req.params.userRoute;
-        const poll=new Poll({
-            pollID: req.body.pollID,
-            title: req.body.pollTitle,
-            publisher: username,
-            candidates: []
-        });
-        poll.save();
-        res.redirect("/"+username+"/"+poll.title+"/candidates");
+        if(req.body.desc == "empty"){
+            const poll=new Poll({
+                pollID: req.body.pollID,
+                title: req.body.pollTitle,
+                publisher: username,
+                votes: [],
+                candidates: [],
+                nameOfCandidates: []
+            });
+            poll.save();
+            res.redirect("/"+username+"/"+poll._id+"/candidates");
+        }
+        else{
+            const poll=new Poll({
+                pollID: req.body.pollID,
+                title: req.body.pollTitle,
+                publisher: username,
+                description: req.body.desc,
+                votes: [],
+                candidates: [],
+                nameOfCandidates: []
+            });
+            poll.save();
+            res.redirect("/"+username+"/"+poll._id+"/candidates");
+        }
+        
     } else{
         res.redirect("/login");
     }
